@@ -1,0 +1,5 @@
+opencv-python
+numpy
+ultralytics  # For YOLOv8
+scipy        # For SORT algorithm
+onnxruntime
