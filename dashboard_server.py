@@ -7,8 +7,11 @@ import time
 from datetime import datetime
 from ultralytics import YOLO
 
-# Import our intelligent system (simplified version for demo)
-class DashboardSystem:
+# Import our actual intelligent system
+from intelligent_system import IntelligentSurveillanceSystem
+
+# Shared state manager for communication between systems
+class SharedStateManager:
     def __init__(self):
         self.alerts = []
         self.video_frame = None
@@ -20,54 +23,70 @@ class DashboardSystem:
             'current_fps': 0
         }
         self.last_update = datetime.now()
+        self.intelligent_system = None
+        self.lock = threading.Lock()
+    
+    def initialize_intelligent_system(self):
+        """Initialize the intelligent system"""
+        if self.intelligent_system is None:
+            self.intelligent_system = IntelligentSurveillanceSystem()
+            self.system_active = True
+            print("✓ Intelligent system initialized in dashboard")
     
     def add_alert(self, alert_data):
         """Add a new alert to the dashboard"""
-        alert = {
-            'id': len(self.alerts) + 1,
-            'timestamp': datetime.now().isoformat(),
-            'type': alert_data.get('type', 'Unknown'),
-            'severity': alert_data.get('severity', 'medium'),
-            'message': alert_data.get('message', ''),
-            'object_id': alert_data.get('object_id', ''),
-            'location': alert_data.get('location', ''),
-            'acknowledged': False
-        }
-        self.alerts.insert(0, alert)  # Add to beginning for latest first
-        self.stats['total_alerts'] += 1
-        
-        # Keep only last 100 alerts
-        if len(self.alerts) > 100:
-            self.alerts = self.alerts[:100]
+        with self.lock:
+            alert = {
+                'id': len(self.alerts) + 1,
+                'timestamp': datetime.now().isoformat(),
+                'type': alert_data.get('rule', 'Unknown'),
+                'severity': alert_data.get('severity', 'medium'),
+                'message': alert_data.get('message', ''),
+                'object_id': alert_data.get('object_id', ''),
+                'location': alert_data.get('location', ''),
+                'acknowledged': False
+            }
+            self.alerts.insert(0, alert)  # Add to beginning for latest first
+            self.stats['total_alerts'] += 1
+            
+            # Keep only last 100 alerts
+            if len(self.alerts) > 100:
+                self.alerts = self.alerts[:100]
     
     def update_frame(self, frame):
         """Update the current video frame"""
-        self.video_frame = frame
-        self.stats['total_frames'] += 1
+        with self.lock:
+            self.video_frame = frame
+            self.stats['total_frames'] += 1
     
     def get_recent_alerts(self, count=10):
         """Get most recent alerts"""
-        return self.alerts[:count]
+        with self.lock:
+            return self.alerts[:count]
     
     def acknowledge_alert(self, alert_id):
         """Mark an alert as acknowledged"""
-        for alert in self.alerts:
-            if alert['id'] == alert_id:
-                alert['acknowledged'] = True
-                return True
-        return False
+        with self.lock:
+            for alert in self.alerts:
+                if alert['id'] == alert_id:
+                    alert['acknowledged'] = True
+                    return True
+            return False
 
-# Initialize Flask app and dashboard system
+# Initialize Flask app and shared state manager
 app = Flask(__name__)
-dashboard_system = DashboardSystem()
+shared_state = SharedStateManager()
 
-# Sample camera feed generator (replace with your actual video source)
-def generate_sample_feed():
-    """Generate a sample video feed for demonstration"""
+def generate_intelligent_feed():
+    """Generate video feed with actual intelligent system analysis"""
+    # Initialize the intelligent system if not already done
+    shared_state.initialize_intelligent_system()
+    
+    # Open video source
     cap = cv2.VideoCapture(0)
     if not cap.isOpened():
-        # Create a synthetic video feed if no camera available
         print("No camera found, creating synthetic feed...")
+        # Create a synthetic video feed if no camera available
         while True:
             # Create a synthetic frame
             frame = np.random.randint(0, 255, (480, 640, 3), dtype=np.uint8)
@@ -85,32 +104,95 @@ def generate_sample_feed():
                 y = int(200 + 100 * np.cos(time.time() + i))
                 cv2.circle(frame, (x, y), 20, (0, 255, 0), -1)
             
-            ret, jpeg = cv2.imencode('.jpg', frame)
+            # Update shared state
+            shared_state.update_frame(frame)
+            
+            # Apply aspect ratio handling to synthetic frame too
+            height, width = frame.shape[:2]
+            max_width, max_height = 1280, 720
+            scale_w = max_width / width
+            scale_h = max_height / height
+            scale = min(scale_w, scale_h, 1.0)
+            
+            if scale < 1.0:
+                new_width = int(width * scale)
+                new_height = int(height * scale)
+                frame = cv2.resize(frame, (new_width, new_height), interpolation=cv2.INTER_AREA)
+            
+            ret, jpeg = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 85])
             frame_bytes = jpeg.tobytes()
             yield (b'--frame\r\n'
                    b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
             time.sleep(0.033)  # ~30 FPS
     else:
-        print("Camera found, using live feed...")
+        print("Camera found, using live intelligent feed...")
         while True:
             ret, frame = cap.read()
             if ret:
-                # Add timestamp to frame
-                cv2.putText(frame, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 
-                           (10, frame.shape[0] - 10), 
-                           cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
-                
-                ret, jpeg = cv2.imencode('.jpg', frame)
-                frame_bytes = jpeg.tobytes()
-                yield (b'--frame\r\n'
-                       b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+                # Run intelligent analysis on the frame
+                try:
+                    annotated_frame, analysis_results = shared_state.intelligent_system.analyze_frame(frame)
+                    
+                    # Process alerts from intelligent system
+                    for alert in analysis_results['alerts']:
+                        # Convert intelligent system alert to dashboard format
+                        alert_data = {
+                            'rule': alert.get('rule', 'unknown'),
+                            'severity': alert.get('severity', 'medium').lower(),
+                            'message': alert.get('message', ''),
+                            'object_id': alert.get('object_id', ''),
+                            'location': 'Camera Feed'
+                        }
+                        shared_state.add_alert(alert_data)
+                    
+                    # Update stats
+                    shared_state.stats['active_tracks'] = len(analysis_results['tracks'])
+                    
+                    # Update shared state with annotated frame
+                    shared_state.update_frame(annotated_frame)
+                    
+                    # Ensure proper aspect ratio and resize if needed
+                    height, width = annotated_frame.shape[:2]
+                    max_width, max_height = 1280, 720  # Standard HD resolution
+                    
+                    # Calculate scaling factor to maintain aspect ratio
+                    scale_w = max_width / width
+                    scale_h = max_height / height
+                    scale = min(scale_w, scale_h, 1.0)  # Don't upscale
+                    
+                    if scale < 1.0:
+                        new_width = int(width * scale)
+                        new_height = int(height * scale)
+                        annotated_frame = cv2.resize(annotated_frame, (new_width, new_height), interpolation=cv2.INTER_AREA)
+                    
+                    # Encode frame for streaming
+                    ret, jpeg = cv2.imencode('.jpg', annotated_frame, [cv2.IMWRITE_JPEG_QUALITY, 85])
+                    frame_bytes = jpeg.tobytes()
+                    yield (b'--frame\r\n'
+                           b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+                except Exception as e:
+                    print(f"Error in intelligent analysis: {e}")
+                    # Fallback to basic frame with proper aspect ratio
+                    cv2.putText(frame, "ANALYSIS ERROR", (10, 30), 
+                               cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+                    
+                    # Apply same aspect ratio handling
+                    height, width = frame.shape[:2]
+                    max_width, max_height = 1280, 720
+                    scale_w = max_width / width
+                    scale_h = max_height / height
+                    scale = min(scale_w, scale_h, 1.0)
+                    
+                    if scale < 1.0:
+                        new_width = int(width * scale)
+                        new_height = int(height * scale)
+                        frame = cv2.resize(frame, (new_width, new_height), interpolation=cv2.INTER_AREA)
+                    
+                    ret, jpeg = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 85])
+                    frame_bytes = jpeg.tobytes()
+                    yield (b'--frame\r\n'
+                           b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
             time.sleep(0.033)
-
-def generate_annotated_feed():
-    """Generate video feed with intelligent annotations"""
-    # This would integrate with your actual intelligent system
-    # For now, we'll use a sample feed
-    return generate_sample_feed()
 
 # Routes
 @app.route('/')
@@ -120,14 +202,14 @@ def index():
 
 @app.route('/video_feed')
 def video_feed():
-    """Video streaming route"""
-    return Response(generate_annotated_feed(),
+    """Video streaming route with intelligent analysis"""
+    return Response(generate_intelligent_feed(),
                    mimetype='multipart/x-mixed-replace; boundary=frame')
 
 @app.route('/api/alerts')
 def get_alerts():
     """Get current alerts API"""
-    recent_alerts = dashboard_system.get_recent_alerts(20)
+    recent_alerts = shared_state.get_recent_alerts(20)
     return jsonify({
         'alerts': recent_alerts,
         'total': len(recent_alerts),
@@ -139,16 +221,16 @@ def get_stats():
     """Get system statistics API"""
     # Update FPS calculation
     current_time = datetime.now()
-    time_diff = (current_time - dashboard_system.last_update).total_seconds()
+    time_diff = (current_time - shared_state.last_update).total_seconds()
     if time_diff > 0:
-        dashboard_system.stats['current_fps'] = min(30, dashboard_system.stats['total_frames'] / time_diff)
+        shared_state.stats['current_fps'] = min(30, shared_state.stats['total_frames'] / time_diff)
     
-    return jsonify(dashboard_system.stats)
+    return jsonify(shared_state.stats)
 
 @app.route('/api/alerts/<int:alert_id>/acknowledge', methods=['POST'])
 def acknowledge_alert(alert_id):
     """Acknowledge an alert"""
-    if dashboard_system.acknowledge_alert(alert_id):
+    if shared_state.acknowledge_alert(alert_id):
         return jsonify({'success': True})
     else:
         return jsonify({'success': False, 'error': 'Alert not found'}), 404
@@ -158,21 +240,21 @@ def test_alert():
     """Generate a test alert (for demonstration)"""
     test_alerts = [
         {
-            'type': 'unattended_bag',
+            'rule': 'unattended_bag',
             'severity': 'high',
             'message': 'Unattended bag detected in waiting area',
             'object_id': 'bag_127',
             'location': 'Main Hall - Zone A'
         },
         {
-            'type': 'restricted_zone',
+            'rule': 'restricted_zone',
             'severity': 'medium', 
             'message': 'Unauthorized access in restricted area',
             'object_id': 'person_42',
             'location': 'Server Room - Restricted Zone'
         },
         {
-            'type': 'loitering',
+            'rule': 'loitering',
             'severity': 'medium',
             'message': 'Suspicious loitering detected',
             'object_id': 'person_15',
@@ -182,54 +264,25 @@ def test_alert():
     
     import random
     alert_data = random.choice(test_alerts)
-    dashboard_system.add_alert(alert_data)
+    shared_state.add_alert(alert_data)
     
-    return jsonify({'success': True, 'alert': alert_data})
-
-# Background thread to simulate intelligent system updates
-def simulate_intelligent_system():
-    """Simulate the intelligent system generating alerts"""
-    alert_types = [
-        ('unattended_bag', 'high', 'Unattended bag detected', 'Main Hall'),
-        ('restricted_zone', 'medium', 'Zone violation', 'Restricted Area'),
-        ('loitering', 'medium', 'Suspicious loitering', 'Entrance'),
-        ('crowding', 'low', 'High density area', 'Waiting Zone')
-    ]
-    
-    while True:
-        # Randomly generate alerts (less frequently)
-        if np.random.random() < 0.02:  # 2% chance per iteration
-            alert_type, severity, base_message, location = np.random.choice(
-                len(alert_types), p=[0.4, 0.3, 0.2, 0.1]
-            )
-            alert_type, severity, base_message, location = alert_types[alert_type]
-            
-            alert_data = {
-                'type': alert_type,
-                'severity': severity,
-                'message': f"{base_message} in {location}",
-                'object_id': f"{alert_type}_{np.random.randint(100, 999)}",
-                'location': location
-            }
-            dashboard_system.add_alert(alert_data)
-            print(f"Simulated alert: {alert_data['message']}")
-        
-        # Update stats
-        dashboard_system.stats['active_tracks'] = np.random.randint(0, 8)
-        time.sleep(1)  
+    return jsonify({'success': True, 'alert': alert_data})  
 
 if __name__ == '__main__':
-    # Start background simulation thread
-    simulation_thread = threading.Thread(target=simulate_intelligent_system, daemon=True)
-    simulation_thread.start()
-    
-    print("🚀 Starting EP-SAD Security Dashboard...")
+    print("🚀 Starting EP-SAD Security Dashboard with Intelligent System...")
     print("📊 Dashboard available at: http://localhost:5000")
     print("🎯 Features:")
-    print("   - Live video feed with intelligent annotations")
-    print("   - Real-time alert monitoring")
+    print("   - Live video feed with REAL intelligent analysis")
+    print("   - YOLO object detection and tracking")
+    print("   - Sequence logic engine for complex event detection")
+    print("   - Real-time alert monitoring from actual model")
     print("   - Alert acknowledgment system")
     print("   - System statistics and analytics")
-    print("-" * 50)
+    print("🧠 Intelligent System: ACTIVE")
+    print("   - Unattended bag detection")
+    print("   - Restricted zone violations")
+    print("   - Suspicious loitering detection")
+    print("   - Object tracking and behavior analysis")
+    print("-" * 60)
     
     app.run(host='0.0.0.0', port=5000, debug=True, threaded=True)
