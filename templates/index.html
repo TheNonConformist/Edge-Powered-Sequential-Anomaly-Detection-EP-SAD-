@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EP-SAD Security Dashboard</title>
+    <title>MILITARY SURVEILLANCE COMMAND</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -12,23 +13,30 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #0f1a2b;
-            color: #ffffff;
-            line-height: 1.6;
+            font-family: 'Rajdhani', 'Orbitron', monospace;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0d1b2a 100%);
+            color: #00ff41;
+            line-height: 1.4;
+            background-attachment: fixed;
         }
 
         .dashboard {
             display: grid;
-            grid-template-columns: 1fr 400px;
-            grid-template-rows: 80px 1fr 300px;
+            grid-template-columns: 1fr 380px;
+            grid-template-rows: 70px 1fr;
             grid-template-areas: 
                 "header header"
-                "video alerts"
-                "stats alerts";
+                "video right-panel";
             height: 100vh;
-            gap: 15px;
-            padding: 15px;
+            gap: 12px;
+            padding: 12px;
+        }
+
+        .right-panel {
+            grid-area: right-panel;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
         }
 
         @media (max-width: 1400px) {
@@ -45,13 +53,14 @@
 
         .header {
             grid-area: header;
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-            border-radius: 10px;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 50%, #0d1b2a 100%);
+            border: 2px solid #00ff41;
+            border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0 30px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            padding: 0 25px;
+            box-shadow: 0 0 20px rgba(0, 255, 65, 0.3), inset 0 0 20px rgba(0, 255, 65, 0.1);
         }
 
         .logo {
@@ -61,13 +70,20 @@
         }
 
         .logo h1 {
-            font-size: 24px;
-            font-weight: 600;
+            font-family: 'Orbitron', monospace;
+            font-size: 22px;
+            font-weight: 700;
+            color: #00ff41;
+            text-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+            letter-spacing: 1px;
         }
 
         .logo .tagline {
-            font-size: 14px;
-            opacity: 0.8;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 12px;
+            color: #888;
+            font-weight: 400;
+            letter-spacing: 0.5px;
         }
 
         .system-status {
@@ -80,17 +96,22 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            padding: 8px 16px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 20px;
+            padding: 6px 14px;
+            background: rgba(0, 255, 65, 0.1);
+            border: 1px solid #00ff41;
+            border-radius: 15px;
+            font-weight: 600;
+            font-size: 11px;
+            font-family: 'Rajdhani', sans-serif;
         }
 
         .status-dot {
-            width: 10px;
-            height: 10px;
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
-            background: #4CAF50;
-            animation: pulse 2s infinite;
+            background: #00ff41;
+            box-shadow: 0 0 10px #00ff41;
+            animation: pulse 1.5s infinite;
         }
 
         @keyframes pulse {
@@ -99,13 +120,43 @@
             100% { opacity: 1; }
         }
 
+        .location-display {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px;
+            background: rgba(0, 100, 255, 0.1);
+            border: 1px solid #0066ff;
+            border-radius: 15px;
+            font-weight: 600;
+            font-size: 11px;
+            font-family: 'Rajdhani', sans-serif;
+            color: #0066ff;
+        }
+
+        .location-icon {
+            font-size: 12px;
+        }
+
+        .timestamp {
+            font-size: 11px;
+            font-weight: 600;
+            color: #888;
+            font-family: 'Rajdhani', sans-serif;
+            padding: 6px 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
         .video-container {
             grid-area: video;
-            background: #1a2536;
-            border-radius: 10px;
+            background: #0a0a0a;
+            border: 2px solid #00ff41;
+            border-radius: 8px;
             overflow: hidden;
             position: relative;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 0 20px rgba(0, 255, 65, 0.2), inset 0 0 20px rgba(0, 255, 65, 0.05);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -122,68 +173,84 @@
 
         .video-overlay {
             position: absolute;
-            top: 15px;
-            left: 15px;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 10px 15px;
-            border-radius: 5px;
-            font-size: 14px;
+            top: 12px;
+            left: 12px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #00ff41;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #00ff41;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            font-family: 'Rajdhani', sans-serif;
         }
 
         .alerts-panel {
             grid-area: alerts;
-            background: #1a2536;
-            border-radius: 10px;
+            background: #0a0a0a;
+            border: 2px solid #00ff41;
+            border-radius: 8px;
             display: flex;
             flex-direction: column;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 0 20px rgba(0, 255, 65, 0.2), inset 0 0 20px rgba(0, 255, 65, 0.05);
         }
 
         .panel-header {
-            padding: 20px;
-            border-bottom: 1px solid #2d3a4b;
+            padding: 15px;
+            border-bottom: 1px solid #00ff41;
             display: flex;
-            justify-content: between;
+            justify-content: space-between;
             align-items: center;
         }
 
         .panel-header h2 {
-            font-size: 18px;
-            font-weight: 600;
+            font-family: 'Orbitron', monospace;
+            font-size: 16px;
+            font-weight: 700;
+            color: #00ff41;
+            text-shadow: 0 0 5px rgba(0, 255, 65, 0.3);
+            letter-spacing: 1px;
         }
 
         .alert-count {
-            background: #e74c3c;
-            color: white;
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 12px;
+            background: #ff0040;
+            color: #000;
+            padding: 3px 10px;
+            border-radius: 10px;
+            font-size: 11px;
             font-weight: bold;
+            border: 1px solid #ff0040;
+            box-shadow: 0 0 10px rgba(255, 0, 64, 0.5);
+            font-family: 'Rajdhani', sans-serif;
         }
 
         .alerts-list {
             flex: 1;
             overflow-y: auto;
-            padding: 10px;
+            padding: 8px;
         }
 
         .alert-item {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 10px;
-            border-left: 4px solid #e74c3c;
+            background: rgba(0, 255, 65, 0.05);
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 8px;
+            border-left: 3px solid #ff0040;
+            border: 1px solid rgba(0, 255, 65, 0.2);
             transition: all 0.3s ease;
+            font-size: 12px;
         }
 
         .alert-item.acknowledged {
-            opacity: 0.6;
-            border-left-color: #7f8c8d;
+            opacity: 0.4;
+            border-left-color: #666;
+            background: rgba(0, 255, 65, 0.02);
         }
 
-        .alert-item.high { border-left-color: #e74c3c; }
-        .alert-item.medium { border-left-color: #f39c12; }
-        .alert-item.low { border-left-color: #3498db; }
+        .alert-item.high { border-left-color: #ff0040; }
+        .alert-item.medium { border-left-color: #ffaa00; }
+        .alert-item.low { border-left-color: #00aaff; }
 
         .alert-header {
             display: flex;
@@ -193,66 +260,80 @@
         }
 
         .alert-type {
-            font-weight: 600;
-            font-size: 14px;
+            font-weight: 700;
+            font-size: 12px;
+            color: #00ff41;
+            letter-spacing: 0.5px;
+            font-family: 'Rajdhani', sans-serif;
         }
 
         .alert-severity {
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 9px;
             font-weight: bold;
             text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-family: 'Rajdhani', sans-serif;
         }
 
-        .severity-high { background: #e74c3c; }
-        .severity-medium { background: #f39c12; }
-        .severity-low { background: #3498db; }
+        .severity-high { background: #ff0040; color: #000; }
+        .severity-medium { background: #ffaa00; color: #000; }
+        .severity-low { background: #00aaff; color: #000; }
 
         .alert-message {
-            font-size: 13px;
-            margin-bottom: 8px;
+            font-size: 11px;
+            margin-bottom: 6px;
             opacity: 0.9;
+            color: #ccc;
+            font-family: 'Rajdhani', sans-serif;
         }
 
         .alert-meta {
             display: flex;
             justify-content: space-between;
-            font-size: 11px;
+            font-size: 10px;
             opacity: 0.7;
+            color: #888;
+            font-family: 'Rajdhani', sans-serif;
         }
 
         .alert-actions {
-            margin-top: 10px;
+            margin-top: 8px;
             display: flex;
-            gap: 8px;
+            gap: 6px;
         }
 
         .btn {
-            padding: 6px 12px;
-            border: none;
-            border-radius: 4px;
-            font-size: 11px;
+            padding: 4px 8px;
+            border: 1px solid;
+            border-radius: 3px;
+            font-size: 10px;
             cursor: pointer;
             transition: all 0.3s ease;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            font-family: 'Rajdhani', sans-serif;
         }
 
         .btn-ack {
-            background: #27ae60;
-            color: white;
+            background: #00ff41;
+            color: #000;
+            border-color: #00ff41;
         }
 
         .btn-ack:hover {
-            background: #219a52;
+            background: #00cc33;
+            box-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
         }
 
         .btn-dismiss {
-            background: #7f8c8d;
-            color: white;
+            background: #666;
+            color: #fff;
+            border-color: #666;
         }
 
         .stats-panel {
-            grid-area: stats;
             background: #1a2536;
             border-radius: 10px;
             padding: 20px;
@@ -297,22 +378,27 @@
 
         .controls {
             display: flex;
-            gap: 10px;
-            margin-top: 15px;
+            gap: 8px;
+            margin-top: 10px;
+            padding: 8px;
         }
 
         .btn-test {
-            background: #9b59b6;
-            color: white;
-            padding: 8px 16px;
-            border: none;
-            border-radius: 5px;
+            background: #00ff41;
+            color: #000;
+            padding: 6px 12px;
+            border: 1px solid #00ff41;
+            border-radius: 4px;
             cursor: pointer;
-            font-size: 12px;
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            font-family: 'Rajdhani', sans-serif;
         }
 
         .btn-test:hover {
-            background: #8e44ad;
+            background: #00cc33;
+            box-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
         }
 
         /* Scrollbar styling */
@@ -330,9 +416,71 @@
             border-radius: 3px;
         }
 
-        .timestamp {
+        .stats-panel {
+            background: #0a0a0a;
+            border: 2px solid #00ff41;
+            border-radius: 8px;
+            padding: 12px;
+            box-shadow: 0 0 20px rgba(0, 255, 65, 0.2), inset 0 0 20px rgba(0, 255, 65, 0.05);
+        }
+
+        .stats-header {
+            font-family: 'Orbitron', monospace;
+            font-size: 14px;
+            font-weight: 700;
+            color: #00ff41;
+            text-shadow: 0 0 5px rgba(0, 255, 65, 0.3);
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .stats-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 10px;
+            background: rgba(0, 255, 65, 0.05);
+            border: 1px solid rgba(0, 255, 65, 0.2);
+            border-radius: 4px;
+            font-family: 'Rajdhani', sans-serif;
+        }
+
+        .stat-label {
             font-size: 11px;
-            opacity: 0.7;
+            color: #888;
+            font-weight: 500;
+            letter-spacing: 0.3px;
+        }
+
+        .stat-value {
+            font-size: 12px;
+            color: #00ff41;
+            font-weight: 700;
+            text-shadow: 0 0 3px rgba(0, 255, 65, 0.3);
+        }
+
+        .stat-value.fps { color: #2ecc71; }
+        .stat-value.alerts { color: #ff0040; }
+        .stat-value.frames { color: #00aaff; }
+
+        /* Header layout improvements */
+        .header-content {
+            display: flex;
+            align-items: center;
+            gap: 25px;
+        }
+
+        .status-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
     </style>
 </head>
@@ -341,13 +489,19 @@
         <!-- Header -->
         <header class="header">
             <div class="logo">
-                <h1>EP-SAD Security Dashboard</h1>
-                <span class="tagline">Edge-Powered Sequential Anomaly Detection</span>
+                <h1>MILITARY SURVEILLANCE COMMAND</h1>
+                <span class="tagline">CLASSIFIED: Edge-Powered Anomaly Detection System</span>
             </div>
-            <div class="system-status">
-                <div class="status-indicator">
-                    <div class="status-dot"></div>
-                    <span>SYSTEM ACTIVE</span>
+            <div class="header-content">
+                <div class="status-group">
+                    <div class="status-indicator">
+                        <div class="status-dot"></div>
+                        <span>SYSTEM ACTIVE</span>
+                    </div>
+                    <div class="location-display">
+                        <span class="location-icon">📍</span>
+                        <span id="location-text">ACQUIRING GPS...</span>
+                    </div>
                 </div>
                 <div id="current-time" class="timestamp"></div>
             </div>
@@ -357,47 +511,46 @@
         <div class="video-container">
             <img src="{{ url_for('video_feed') }}" class="video-feed" alt="Live Video Feed">
             <div class="video-overlay">
-                LIVE INTELLIGENT SURVEILLANCE
+                LIVE COMBAT SURVEILLANCE FEED
             </div>
         </div>
 
-        <!-- Alerts Panel -->
-        <div class="alerts-panel">
-            <div class="panel-header">
-                <h2>Security Alerts</h2>
-                <div class="alert-count" id="alert-count">0</div>
-            </div>
-            <div class="alerts-list" id="alerts-list">
-                <!-- Alerts will be populated by JavaScript -->
-                <div class="alert-item" style="text-align: center; opacity: 0.7;">
-                    Loading alerts...
+        <!-- Right Panel -->
+        <div class="right-panel">
+            <!-- Statistics Panel -->
+            <div class="stats-panel">
+                <div class="stats-header">MISSION STATUS</div>
+                <div class="stats-list">
+                    <div class="stat-item">
+                        <span class="stat-label">CURRENT FPS</span>
+                        <span class="stat-value fps" id="fps-value">0.0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">FRAMES PROCESSED</span>
+                        <span class="stat-value frames" id="frames-value">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">TOTAL ALERTS</span>
+                        <span class="stat-value alerts" id="total-alerts">0</span>
+                    </div>
                 </div>
             </div>
-            <div class="controls">
-                <button class="btn-test" onclick="generateTestAlert()">Test Alert</button>
-                <button class="btn-test" onclick="acknowledgeAll()">Acknowledge All</button>
-            </div>
-        </div>
 
-        <!-- Statistics Panel -->
-        <div class="stats-panel">
-            <h3 style="margin-bottom: 15px;">System Statistics</h3>
-            <div class="stats-grid">
-                <div class="stat-card fps">
-                    <div class="stat-value" id="fps-value">0</div>
-                    <div class="stat-label">Current FPS</div>
+            <!-- Alerts Panel -->
+            <div class="alerts-panel">
+                <div class="panel-header">
+                    <h2>THREAT ASSESSMENT</h2>
+                    <div class="alert-count" id="alert-count">0</div>
                 </div>
-                <div class="stat-card alerts">
-                    <div class="stat-value" id="total-alerts">0</div>
-                    <div class="stat-label">Total Alerts</div>
+                <div class="alerts-list" id="alerts-list">
+                    <!-- Alerts will be populated by JavaScript -->
+                    <div class="alert-item" style="text-align: center; opacity: 0.7;">
+                        SCANNING FOR THREATS...
+                    </div>
                 </div>
-                <div class="stat-card tracks">
-                    <div class="stat-value" id="active-tracks">0</div>
-                    <div class="stat-label">Active Tracks</div>
-                </div>
-                <div class="stat-card frames">
-                    <div class="stat-value" id="total-frames">0</div>
-                    <div class="stat-label">Frames Processed</div>
+                <div class="controls">
+                    <button class="btn-test" onclick="generateTestAlert()">SIMULATE THREAT</button>
+                    <button class="btn-test" onclick="acknowledgeAll()">CLEAR ALL</button>
                 </div>
             </div>
         </div>
@@ -421,6 +574,47 @@
         setInterval(updateTime, 1000);
         updateTime();
 
+        // Geolocation functionality
+        function getGeolocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const lat = position.coords.latitude.toFixed(4);
+                        const lon = position.coords.longitude.toFixed(4);
+                        const accuracy = position.coords.accuracy.toFixed(1);
+                        
+                        document.getElementById('location-text').textContent = 
+                            `${lat}°N, ${lon}°E (±${accuracy}m)`;
+                    },
+                    (error) => {
+                        console.error('Geolocation error:', error);
+                        // Fallback to simulated military coordinates
+                        const simulatedLocations = [
+                            "34.0522°N, 118.2437°W (±5.2m)",
+                            "40.7128°N, 74.0060°E (±3.8m)", 
+                            "51.5074°N, 0.1278°W (±7.1m)",
+                            "35.6762°N, 139.6503°E (±4.5m)",
+                            "48.8566°N, 2.3522°E (±6.3m)"
+                        ];
+                        const randomLocation = simulatedLocations[Math.floor(Math.random() * simulatedLocations.length)];
+                        document.getElementById('location-text').textContent = randomLocation;
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 5000,
+                        maximumAge: 300000 // 5 minutes
+                    }
+                );
+            } else {
+                document.getElementById('location-text').textContent = "GPS UNAVAILABLE";
+            }
+        }
+
+        // Initialize geolocation
+        getGeolocation();
+        // Update location every 30 seconds
+        setInterval(getGeolocation, 30000);
+
         // Fetch and display alerts
         async function fetchAlerts() {
             try {
@@ -433,7 +627,7 @@
                 alertCount.textContent = data.unacknowledged;
                 
                 if (data.alerts.length === 0) {
-                    alertsList.innerHTML = '<div class="alert-item" style="text-align: center; opacity: 0.7;">No active alerts</div>';
+                    alertsList.innerHTML = '<div class="alert-item" style="text-align: center; opacity: 0.7;">ALL CLEAR - NO THREATS DETECTED</div>';
                     return;
                 }
                 
@@ -468,9 +662,8 @@
                 const data = await response.json();
                 
                 document.getElementById('fps-value').textContent = data.current_fps.toFixed(1);
+                document.getElementById('frames-value').textContent = (data.total_frames / 1000).toFixed(1) + 'K';
                 document.getElementById('total-alerts').textContent = data.total_alerts;
-                document.getElementById('active-tracks').textContent = data.active_tracks;
-                document.getElementById('total-frames').textContent = (data.total_frames / 1000).toFixed(1) + 'K';
             } catch (error) {
                 console.error('Error fetching stats:', error);
             }
@@ -493,17 +686,15 @@
         // Acknowledge all alerts
         async function acknowledgeAll() {
             try {
-                const response = await fetch('/api/alerts');
-                const data = await response.json();
-                
-                for (const alert of data.alerts) {
-                    if (!alert.acknowledged) {
-                        await fetch(`/api/alerts/${alert.id}/acknowledge`, { method: 'POST' });
-                    }
+                const response = await fetch('/api/alerts/clear', {
+                    method: 'POST'
+                });
+                if (response.ok) {
+                    fetchAlerts(); // Refresh alerts
+                    fetchStats(); // Refresh stats
                 }
-                fetchAlerts(); // Refresh alerts
             } catch (error) {
-                console.error('Error acknowledging all alerts:', error);
+                console.error('Error clearing all alerts:', error);
             }
         }
 

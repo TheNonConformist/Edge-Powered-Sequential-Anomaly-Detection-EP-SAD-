@@ -25,6 +25,8 @@ class SharedStateManager:
         self.last_update = datetime.now()
         self.intelligent_system = None
         self.lock = threading.Lock()
+        self.max_alerts = 4  # MAXIMUM ALERTS LIMIT
+        self.alerted_objects = set()  # Track objects that have already generated alerts
     
     def initialize_intelligent_system(self):
         """Initialize the intelligent system"""
@@ -34,24 +36,36 @@ class SharedStateManager:
             print("✓ Intelligent system initialized in dashboard")
     
     def add_alert(self, alert_data):
-        """Add a new alert to the dashboard"""
+        """Add a new alert to the dashboard - LIMITED TO 4 MAX"""
         with self.lock:
+            # Check if we already have an alert for this object to avoid duplicates
+            object_id = alert_data.get('object_id', '')
+            if object_id in self.alerted_objects:
+                return  # Skip duplicate alerts for same object
+            
             alert = {
                 'id': len(self.alerts) + 1,
                 'timestamp': datetime.now().isoformat(),
                 'type': alert_data.get('rule', 'Unknown'),
                 'severity': alert_data.get('severity', 'medium'),
                 'message': alert_data.get('message', ''),
-                'object_id': alert_data.get('object_id', ''),
+                'object_id': object_id,
                 'location': alert_data.get('location', ''),
                 'acknowledged': False
             }
-            self.alerts.insert(0, alert)  # Add to beginning for latest first
+            
+            # Add to beginning for latest first
+            self.alerts.insert(0, alert)
+            self.alerted_objects.add(object_id)
             self.stats['total_alerts'] += 1
             
-            # Keep only last 100 alerts
-            if len(self.alerts) > 100:
-                self.alerts = self.alerts[:100]
+            # STRICT LIMIT: Only keep max 4 alerts total
+            if len(self.alerts) > self.max_alerts:
+                # Remove oldest alert and its object tracking
+                oldest_alert = self.alerts.pop()
+                oldest_object_id = oldest_alert['object_id']
+                if oldest_object_id in self.alerted_objects:
+                    self.alerted_objects.remove(oldest_object_id)
     
     def update_frame(self, frame):
         """Update the current video frame"""
@@ -59,8 +73,8 @@ class SharedStateManager:
             self.video_frame = frame
             self.stats['total_frames'] += 1
     
-    def get_recent_alerts(self, count=10):
-        """Get most recent alerts"""
+    def get_recent_alerts(self, count=4):
+        """Get most recent alerts - LIMITED TO 4"""
         with self.lock:
             return self.alerts[:count]
     
@@ -72,6 +86,13 @@ class SharedStateManager:
                     alert['acknowledged'] = True
                     return True
             return False
+    
+    def clear_all_alerts(self):
+        """Clear all alerts and reset tracking"""
+        with self.lock:
+            self.alerts.clear()
+            self.alerted_objects.clear()
+            self.stats['total_alerts'] = 0
 
 # Initialize Flask app and shared state manager
 app = Flask(__name__)
@@ -133,7 +154,7 @@ def generate_intelligent_feed():
                 try:
                     annotated_frame, analysis_results = shared_state.intelligent_system.analyze_frame(frame)
                     
-                    # Process alerts from intelligent system
+                    # Process alerts from intelligent system - ONE PER PERSON, NO DUPLICATES
                     for alert in analysis_results['alerts']:
                         # Convert intelligent system alert to dashboard format
                         alert_data = {
@@ -208,11 +229,12 @@ def video_feed():
 
 @app.route('/api/alerts')
 def get_alerts():
-    """Get current alerts API"""
-    recent_alerts = shared_state.get_recent_alerts(20)
+    """Get current alerts API - LIMITED TO 4"""
+    recent_alerts = shared_state.get_recent_alerts(4)  # STRICT LIMIT
     return jsonify({
         'alerts': recent_alerts,
         'total': len(recent_alerts),
+        'max_alerts': shared_state.max_alerts,  # Include max limit in response
         'unacknowledged': len([a for a in recent_alerts if not a['acknowledged']])
     })
 
@@ -234,6 +256,12 @@ def acknowledge_alert(alert_id):
         return jsonify({'success': True})
     else:
         return jsonify({'success': False, 'error': 'Alert not found'}), 404
+
+@app.route('/api/alerts/clear', methods=['POST'])
+def clear_all_alerts():
+    """Clear all alerts"""
+    shared_state.clear_all_alerts()
+    return jsonify({'success': True, 'message': 'All alerts cleared'})
 
 @app.route('/api/test_alert', methods=['POST'])
 def test_alert():
@@ -283,6 +311,7 @@ if __name__ == '__main__':
     print("   - Restricted zone violations")
     print("   - Suspicious loitering detection")
     print("   - Object tracking and behavior analysis")
+    print("🔔 ALERT SYSTEM: MAXIMUM 4 ALERTS - NO DUPLICATES")
     print("-" * 60)
     
     app.run(host='0.0.0.0', port=5000, debug=True, threaded=True)
